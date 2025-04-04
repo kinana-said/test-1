@@ -10,11 +10,13 @@ class Contact extends Model
     'phone',
     'githup',
     'linkedlin',
-   
+    'portfolio_id',
+
 
 ];
 
     public function portfolio(){
         return $this->belongsTo(Portfolio::class);
     }
+
 }

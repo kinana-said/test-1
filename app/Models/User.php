@@ -13,6 +13,7 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable,HasApiTokens;
 
+
     /**
      * The attributes that are mass assignable.
      *
@@ -56,8 +57,9 @@ class User extends Authenticatable
     {
         if($this->image){
             $basePath="storage";
-            return url('$basePath/$this->image');
+            return url("$basePath/{$this->image}");
         }return null;
     }
 
+ 
 }

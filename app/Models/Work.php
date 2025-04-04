@@ -17,11 +17,13 @@ class Work extends Model
     public function portfolio(){
         return $this->belongsTo(Portfolio::class);
     }
+
     public function getImageUrlAttribute()
     {
         if($this->image){
             $basePath="storage";
-            return url('$basePath/$this->image');
+            return url("$basePath/{$this->image}");
         }return null;
     }
+
 }

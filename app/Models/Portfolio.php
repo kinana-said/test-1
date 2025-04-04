@@ -22,4 +22,8 @@ class Portfolio extends Model
     public function sections(){
         return $this->hasMany( Section::class);
     }
+    public function contact(){
+        return $this->hasOne( Contact::class);
+    }
+  
 }

@@ -1,22 +1,27 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\Contact;
+use App\Http\Controllers\AccessDeniedHttpException;
 use App\Http\Controllers\Api\Controller;
 use Illuminate\Http\Request;
 namespace App\Http\Controllers;
 use App\Models\Portfolio;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Contact;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Foundation\validation\validatesRequests;
 use Illuminate\Http\Request;
 
 class PortfolioController extends Controller
 {
+    use AuthorizesRequests,DispatchesJobs,validatesRequests;
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $portfolios=Portfolio::with(["user","works","sections"])->get();
+        $portfolios=Portfolio::with(["user","works","sections","contact"])->get();
         if (!$portfolios) {
             return response()->json(["message" => "Portfolio is empty"], 404);
         }
@@ -56,12 +61,14 @@ class PortfolioController extends Controller
     if (!$portfolio) {
         return response()->json(["message" => "Portfolio not found"], 404);
     }
+
     $data = [
         "id" => $portfolio->id,
-        "name_user" => $portfolio->user->name,
-        "image" => $portfolio->image,
+        "image" => $portfolio->user->image_url,
         "title" => $portfolio->title,
         "description" => $portfolio->content,
+        "first_name"=>$portfolio->user->first_name,
+        "last_name"=>$portfolio->user->last_name,
 
         "Sections" => $portfolio->sections->map(function ($section) {
             return [
@@ -79,12 +86,18 @@ class PortfolioController extends Controller
 
                 ];
         }),
-        "Sections" => $portfolio->sections->map(function ($section) {
+        "Contacts" => $portfolio->contact->map(function ($contact) {
             return [
-                "content" => $section->content,
-                "section_type" => $section->section_type,
+
+                "email" => $contact->email,
+                "phone" => $contact->phone,
+                "githup" => $contact->githup,
+                "linkedlin" => $contact->linkedlin,
+
                 ];
-        }),];
+        }),
+
+        ];
 
 
         return response()->json($data, 200);
@@ -95,16 +108,16 @@ class PortfolioController extends Controller
      */
     public function update(Request $request, $id)
     {
+
         $portfolio=Portfolio::with(["user","works","sections"])->find($id);
-
-
         if (!$portfolio) {
             return response()->json(["message" => "Portfolio not found"], 404);
         }
+        try {
+        $this->authorize('update',$portfolio);
         $request->validate([
             'title' => 'required|string|max:16',
             'description' => 'required|string|max:255',
-            'user_id' => 'required|exists:users,id',
 
         ]);
         $portfolio->user_id = auth()->id();
@@ -112,7 +125,11 @@ class PortfolioController extends Controller
         $portfolio->description = $request->description;
         $portfolio->save();
 
-        return response()->json(["message"=>"Portfolio  updated successfully","portfolio"=>$portfolio],200);
+        return response()->json(["message"=>"Portfolio  updated successfully","portfolio"=>$portfolio],200);}
+        catch ( \Illuminate\Auth\Access\AuthorizationException  $e ) {
+
+            return response()->json(['message' => 'not authourize'], 403);
+        }
 
     }
 
@@ -125,9 +142,15 @@ class PortfolioController extends Controller
         if(!$portfolio){
             return response()->json(["message"=>"portfolio not found"], 404);}
         {
+            try {  $this->authorize('delete',$portfolio);
 
             $portfolio->delete();
-        return response()->json(["message"=>"$portfolio  deleted successfully"],200);
+        return response()->json(["message"=>"portfolio  deleted successfully"],200);
+
+             } catch ( \Illuminate\Auth\Access\AuthorizationException  $e ) {
+
+            return response()->json(['message' => 'not authourize'], 403);
+        }
     }
     }
 }
